@@ -4,6 +4,7 @@ import {
   detectPackageManager,
   getDependencyInstallCommand,
 } from "./package-manager.js";
+import { applyPostInstallUpdates } from "./post-install.js";
 import { runCommand } from "./runner.js";
 
 const latestPackages = {
@@ -16,7 +17,8 @@ const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
 export const createInstallPlan = ({
   cwd = process.cwd(),
   destination = "./src",
-  platform = "react-ts",
+  installStorybook = false,
+  platform = "react-ts-vite",
   skipAtomicBomb = false,
   skipDependencies = false,
   skipResources = false,
@@ -59,6 +61,13 @@ export const createInstallPlan = ({
     }
   }
 
+  if (installStorybook) {
+    commands.push({
+      command: npxCommand,
+      args: ["sb", "init"],
+    });
+  }
+
   return {
     commands,
     configured,
@@ -68,6 +77,7 @@ export const createInstallPlan = ({
 export const installAtomicTooling = async ({
   cwd = process.cwd(),
   execute = runCommand,
+  postInstall = applyPostInstallUpdates,
   ...options
 } = {}) => {
   const plan = createInstallPlan({ cwd, ...options });
@@ -75,6 +85,11 @@ export const installAtomicTooling = async ({
   for (const item of plan.commands) {
     await execute(item.command, item.args, { cwd });
   }
+
+  postInstall({
+    cwd,
+    destination: options.destination,
+  });
 
   return plan;
 };
