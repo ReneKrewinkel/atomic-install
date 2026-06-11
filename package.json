@@ -12,9 +12,13 @@
     "src/*.js"
   ],
   "scripts": {
+    "bump:patch": "npm version patch",
+    "deploy": "git push --follow-tags",
+    "deprecate": "npm deprecate create-atomic-install@\"<$(echo $npm_package_version|cut -d v -f 2)\" \"Please upgrade\"",
     "test": "node --test _tests_/*.test.js",
     "check": "find bin src _tests_ -name '*.js' -print | sort | xargs -n1 node --check",
-    "pack:check": "npm test && npm run check && npm pack --dry-run"
+    "pack:check": "npm test && npm run check && npm pack --dry-run",
+    "predeploy": "npm run pack:check && npm version patch"
   },
   "repository": {
     "type": "git",
