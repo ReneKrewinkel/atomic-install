@@ -1,32 +1,17 @@
 {
-  "name": "create-atomic-install",
-  "version": "1.0.0",
-  "description": "Install and configure create-atomic-resources and atomic-bomb with explicit latest package resolution.",
-  "type": "module",
+  "author": "René Krewinkel",
   "bin": {
     "create-atomic-install": "bin/index.js"
   },
-  "main": "src/index.js",
+  "description": "Install and configure create-atomic-resources and atomic-bomb with explicit latest package resolution.",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "bin/index.js",
     "src/*.js"
   ],
-  "scripts": {
-    "bump:patch": "npm version patch",
-    "deploy": "git push --follow-tags",
-    "deprecate": "npm deprecate create-atomic-install@\"<$(echo $npm_package_version|cut -d v -f 2)\" \"Please upgrade\"",
-    "test": "node --test _tests_/*.test.js",
-    "check": "find bin src _tests_ -name '*.js' -print | sort | xargs -n1 node --check",
-    "pack:check": "npm test && npm run check && npm pack --dry-run",
-    "predeploy": "npm run pack:check && npm version patch"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ReneKrewinkel/atomic-install.git"
-  },
   "homepage": "https://atomic-bomb.io",
-  "author": "René Krewinkel",
-  "license": "GPL-1.0-only",
   "keywords": [
     "atomic design",
     "atomic-bomb",
@@ -34,7 +19,22 @@
     "installer",
     "react"
   ],
-  "engines": {
-    "node": ">=18"
-  }
+  "license": "GPL-1.0-only",
+  "main": "src/index.js",
+  "name": "create-atomic-install",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ReneKrewinkel/atomic-install.git"
+  },
+  "scripts": {
+    "bump:patch": "npm version patch",
+    "check": "find bin src _tests_ -name '*.js' -print | sort | xargs -n1 node --check",
+    "deploy": "git push --follow-tags",
+    "deprecate": "npm deprecate create-atomic-install@\"<$(echo $npm_package_version|cut -d v -f 2)\" \"Please upgrade\"",
+    "pack:check": "npm test && npm run check && npm pack --dry-run",
+    "predeploy": "npm run pack:check && npm version patch",
+    "test": "node --test _tests_/*.test.js"
+  },
+  "type": "module",
+  "version": "1.0.1"
 }

@@ -4,7 +4,9 @@ Arguments:
   destination              Resource destination directory (default: ./src)
 
 Options:
-  --platform <name>        Atomic Bomb platform (default: react-ts)
+  --platform <name>        Atomic Bomb platform (default: react-ts-vite)
+  --storybook              Install Storybook without prompting
+  --skip-storybook         Do not install Storybook or prompt
   --skip-resources         Do not run create-atomic-resources
   --skip-atomic-bomb       Do not install or configure atomic-bomb
   --skip-dependencies      Do not add the CLI packages to devDependencies
@@ -15,11 +17,13 @@ export const parseArgs = (args) => {
   const options = {
     destination: "./src",
     help: false,
-    platform: "react-ts",
+    platform: "react-ts-vite",
     skipAtomicBomb: false,
     skipDependencies: false,
     skipResources: false,
+    skipStorybook: false,
     skipUpdate: false,
+    storybook: false,
   };
   let destinationSet = false;
 
@@ -32,6 +36,14 @@ export const parseArgs = (args) => {
     }
     if (arg === "--skip-resources") {
       options.skipResources = true;
+      continue;
+    }
+    if (arg === "--storybook") {
+      options.storybook = true;
+      continue;
+    }
+    if (arg === "--skip-storybook") {
+      options.skipStorybook = true;
       continue;
     }
     if (arg === "--skip-atomic-bomb") {
@@ -70,6 +82,9 @@ export const parseArgs = (args) => {
     throw new Error(
       "--skip-resources and --skip-atomic-bomb leave nothing to install.",
     );
+  }
+  if (options.storybook && options.skipStorybook) {
+    throw new Error("--storybook and --skip-storybook cannot be used together.");
   }
 
   return options;

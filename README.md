@@ -15,7 +15,7 @@ npx create-atomic-install@latest ./src
 Defaults:
 
 - resource destination: `./src`
-- Atomic Bomb platform: `react-ts`
+- Atomic Bomb platform: `react-ts-vite`
 - package versions: `@latest`
 
 The equivalent default command is:
@@ -38,7 +38,7 @@ npx create-atomic-install@latest
 4. If `.atomic-bomb` is missing, runs:
 
    ```shell
-   npx --yes atomic-bomb@latest --platform react-ts
+   npx --yes atomic-bomb@latest --platform react-ts-vite
    ```
 
 5. If `.atomic-bomb` exists, runs:
@@ -47,13 +47,28 @@ npx create-atomic-install@latest
    npx --yes atomic-bomb@latest --update
    ```
 
+6. Asks whether Storybook should be installed with:
+
+   ```shell
+   npx sb init
+   ```
+
+7. Updates `.storybook/preview.ts`, when present, to import the generated
+   `resources/styles/main.css`.
+8. Enables the Atomic Bomb component Sass imports in
+   `<destination>/resources/styles/main.scss`.
+9. Rewrites the generated resource scripts and `.atomic-bomb` component
+   destination to use the destination passed to this installer.
+
 The explicit `create-atomic-resources@latest` package specifier is intentional.
 It avoids stale `npx` resolution and is used on every resource installation.
 
 ## Options
 
 ```text
---platform <name>        Atomic Bomb platform (default: react-ts)
+--platform <name>        Atomic Bomb platform (default: react-ts-vite)
+--storybook              Install Storybook without prompting
+--skip-storybook         Do not install Storybook or prompt
 --skip-resources         Do not run create-atomic-resources
 --skip-atomic-bomb       Do not install or configure atomic-bomb
 --skip-dependencies      Do not add the CLI packages to devDependencies
@@ -64,7 +79,8 @@ It avoids stale `npx` resolution and is used on every resource installation.
 Examples:
 
 ```shell
-npx create-atomic-install@latest ./src --platform react-ts
+npx create-atomic-install@latest ./src --platform react-ts-vite
+npx create-atomic-install@latest ./src --storybook
 npx create-atomic-install@latest ./app --skip-atomic-bomb
 npx create-atomic-install@latest --skip-resources
 ```
