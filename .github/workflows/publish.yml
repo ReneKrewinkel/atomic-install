@@ -64,4 +64,15 @@ jobs:
         if: steps.npm-version.outputs.published == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        run: |
+          set +e
+          OUTPUT=$(npm publish --access public 2>&1)
+          STATUS=$?
+          set -e
+          echo "$OUTPUT"
+
+          if [ "$STATUS" -ne 0 ] && echo "$OUTPUT" | grep -q "EOTP"; then
+            echo "::error title=NPM_TOKEN requires OTP::Replace NPM_TOKEN with a granular access token that has read/write package permission and bypass 2FA enabled for publishing."
+          fi
+
+          exit "$STATUS"
