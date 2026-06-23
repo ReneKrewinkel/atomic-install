@@ -53,8 +53,10 @@ npx create-atomic-install@latest
    npx sb init
    ```
 
-7. Updates `.storybook/preview.ts`, when present, to import the generated
-   `resources/styles/main.css`.
+7. Updates `.storybook/preview.ts`, `.storybook/preview.js`,
+   `storybook/preview.ts`, or `storybook/preview.js`, when present, to import
+   the generated `resources/styles/main.css` from the configured resource
+   destination.
 8. Enables the Atomic Bomb component Sass imports in
    `<destination>/resources/styles/main.scss`.
 9. Rewrites the generated resource scripts and `.atomic-bomb` component

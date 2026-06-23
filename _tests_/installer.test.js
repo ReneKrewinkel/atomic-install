@@ -250,11 +250,10 @@ test("post-install updates use the custom resource destination", () => {
       path.join(previewDir, "preview.ts"),
       "utf8",
     );
-    assert.ok(
-      preview.startsWith(
-        "import '../frontend/src/resources/styles/main.css'\n",
-      ),
-    );
+    assert.deepEqual(preview.split("\n").slice(0, 2), [
+      "import type { Preview } from '@storybook/react-vite'",
+      "import '../frontend/src/resources/styles/main.css'",
+    ]);
 
     const mainScss = fs.readFileSync(path.join(stylesDir, "main.scss"), "utf8");
     for (const type of [
@@ -272,6 +271,34 @@ test("post-install updates use the custom resource destination", () => {
     assert.equal(addStorybookStylesImport({ cwd, destination }), false);
     assert.equal(updateAtomicBombDestination({ cwd, destination }), true);
     assert.equal(updateResourceScripts({ cwd, destination }), true);
+  } finally {
+    fs.rmSync(cwd, { force: true, recursive: true });
+  }
+});
+
+test("post-install updates Storybook JavaScript preview files", () => {
+  const cwd = createProject();
+  const destination = "./src";
+  const stylesDir = path.join(cwd, "src", "resources", "styles");
+  const previewDir = path.join(cwd, "storybook");
+  fs.mkdirSync(stylesDir, { recursive: true });
+  fs.mkdirSync(previewDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(previewDir, "preview.js"),
+    "import { fn } from 'storybook/test'\n",
+  );
+
+  try {
+    assert.equal(addStorybookStylesImport({ cwd, destination }), true);
+
+    const preview = fs.readFileSync(
+      path.join(previewDir, "preview.js"),
+      "utf8",
+    );
+    assert.deepEqual(preview.split("\n").slice(0, 2), [
+      "import { fn } from 'storybook/test'",
+      "import '../src/resources/styles/main.css'",
+    ]);
   } finally {
     fs.rmSync(cwd, { force: true, recursive: true });
   }

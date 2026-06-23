@@ -97,8 +97,14 @@ export const addStorybookStylesImport = ({
   cwd = process.cwd(),
   destination = "./src",
 } = {}) => {
-  const previewPath = path.join(cwd, ".storybook", "preview.ts");
-  if (!fs.existsSync(previewPath)) return false;
+  const previewPath = [
+    path.join(cwd, ".storybook", "preview.ts"),
+    path.join(cwd, ".storybook", "preview.js"),
+    path.join(cwd, "storybook", "preview.ts"),
+    path.join(cwd, "storybook", "preview.js"),
+  ].find((candidate) => fs.existsSync(candidate));
+
+  if (!previewPath) return false;
 
   const cssPath = path.resolve(
     cwd,
@@ -121,7 +127,13 @@ export const addStorybookStylesImport = ({
     return false;
   }
 
-  fs.writeFileSync(previewPath, `${statement}\n${original}`);
+  const firstLineBreak = original.indexOf("\n");
+  const updated =
+    firstLineBreak === -1
+      ? `${original}\n${statement}\n`
+      : `${original.slice(0, firstLineBreak + 1)}${statement}\n${original.slice(firstLineBreak + 1)}`;
+
+  fs.writeFileSync(previewPath, updated);
   return true;
 };
 
