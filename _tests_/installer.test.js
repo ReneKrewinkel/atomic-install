@@ -79,6 +79,7 @@ test("first install pins both packages and explicitly runs latest resources", ()
           "--platform",
           "react-ts-vite",
         ],
+        input: "N\n",
       },
     ]);
   } finally {
@@ -139,6 +140,10 @@ test("executes the plan sequentially in the project root", async () => {
       "create-atomic-resources@latest",
       "./src",
     ]);
+    assert.deepEqual(calls[2].options, {
+      cwd,
+      input: "N\n",
+    });
   } finally {
     fs.rmSync(cwd, { force: true, recursive: true });
   }
@@ -151,7 +156,7 @@ test("adds Storybook initialization to the install plan", () => {
     const plan = createInstallPlan({ cwd, installStorybook: true });
     assert.deepEqual(plan.commands.at(-1), {
       command: process.platform === "win32" ? "npx.cmd" : "npx",
-      args: ["sb", "init"],
+      args: ["sb", "init", "--yes", "--no-dev"],
     });
   } finally {
     fs.rmSync(cwd, { force: true, recursive: true });

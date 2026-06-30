@@ -10,7 +10,7 @@ export const formatCommand = (command, args) =>
 export const runCommand = (
   command,
   args,
-  { cwd = process.cwd(), env = process.env } = {},
+  { cwd = process.cwd(), env = process.env, input } = {},
 ) =>
   new Promise((resolve, reject) => {
     console.log(`\n> ${formatCommand(command, args)}`);
@@ -19,7 +19,7 @@ export const runCommand = (
       cwd,
       env,
       shell: false,
-      stdio: "inherit",
+      stdio: [input === undefined ? "inherit" : "pipe", "inherit", "inherit"],
     });
 
     child.on("error", reject);
@@ -32,4 +32,8 @@ export const runCommand = (
       const detail = signal ? `signal ${signal}` : `exit code ${code}`;
       reject(new Error(`${command} failed with ${detail}.`));
     });
+
+    if (input !== undefined) {
+      child.stdin.end(input);
+    }
   });

@@ -38,8 +38,10 @@ npx create-atomic-install@latest
 4. If `.atomic-bomb` is missing, runs:
 
    ```shell
-   npx --yes atomic-bomb@latest --platform react-ts-vite
+   printf 'N\n' | npx --yes atomic-bomb@latest --platform react-ts-vite
    ```
+
+   The installer declines optional AI provider configuration.
 
 5. If `.atomic-bomb` exists, runs:
 
@@ -50,8 +52,11 @@ npx create-atomic-install@latest
 6. Asks whether Storybook should be installed with:
 
    ```shell
-   npx sb init
+   npx sb init --yes --no-dev
    ```
+
+   Storybook uses its defaults and exits after initialization without starting
+   the development server.
 
 7. Updates `.storybook/preview.ts`, `.storybook/preview.js`,
    `storybook/preview.ts`, or `storybook/preview.js`, when present, to import
@@ -87,5 +92,5 @@ npx create-atomic-install@latest ./app --skip-atomic-bomb
 npx create-atomic-install@latest --skip-resources
 ```
 
-Atomic Bomb platform setup remains interactive because it can configure an AI
-provider.
+Atomic Bomb platform setup is non-interactive and leaves the optional AI
+provider disabled.
