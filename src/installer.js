@@ -52,6 +52,7 @@ export const createInstallPlan = ({
       commands.push({
         command: npxCommand,
         args: ["--yes", latestPackages.atomicBomb, "--platform", platform],
+        input: "N\n",
       });
     } else if (!skipUpdate) {
       commands.push({
@@ -64,7 +65,7 @@ export const createInstallPlan = ({
   if (installStorybook) {
     commands.push({
       command: npxCommand,
-      args: ["sb", "init"],
+      args: ["sb", "init", "--yes", "--no-dev"],
     });
   }
 
@@ -83,7 +84,10 @@ export const installAtomicTooling = async ({
   const plan = createInstallPlan({ cwd, ...options });
 
   for (const item of plan.commands) {
-    await execute(item.command, item.args, { cwd });
+    await execute(item.command, item.args, {
+      cwd,
+      ...(item.input === undefined ? {} : { input: item.input }),
+    });
   }
 
   postInstall({
