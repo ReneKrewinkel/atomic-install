@@ -5,11 +5,17 @@ import path from "node:path";
 import test from "node:test";
 import { parseArgs } from "../src/args.js";
 import { shouldInstallStorybook } from "../src/cli.js";
-import { createInstallPlan, installAtomicTooling } from "../src/installer.js";
+import {
+  createInstallPlan,
+  installAtomicTooling,
+  resolvePackageSpecs,
+} from "../src/installer.js";
 import {
   addStorybookStylesImport,
+  addUseFontHookToApp,
   applyPostInstallUpdates,
   enableAtomicImports,
+  isNativeProject,
   updateAtomicBombDestination,
   updateResourceScripts,
 } from "../src/post-install.js";
@@ -73,12 +79,7 @@ test("first install pins both packages and explicitly runs latest resources", ()
       },
       {
         command: process.platform === "win32" ? "npx.cmd" : "npx",
-        args: [
-          "--yes",
-          "atomic-bomb@latest",
-          "--platform",
-          "react-ts-vite",
-        ],
+        args: ["--yes", "atomic-bomb@latest", "--platform", "react-ts-vite"],
         input: "N\n",
       },
     ]);
@@ -100,11 +101,7 @@ test("configured projects refresh skills instead of reconfiguring", () => {
     assert.deepEqual(plan.commands, [
       {
         command: process.platform === "win32" ? "npx.cmd" : "npx",
-        args: [
-          "--yes",
-          "create-atomic-resources@latest",
-          "./frontend/src",
-        ],
+        args: ["--yes", "create-atomic-resources@latest", "./frontend/src"],
       },
       {
         command: process.platform === "win32" ? "npx.cmd" : "npx",
@@ -116,6 +113,78 @@ test("configured projects refresh skills instead of reconfiguring", () => {
   }
 });
 
+test("package specs can be overridden for local end-to-end tests", () => {
+  const cwd = createProject({ lockfile: "package-lock.json" });
+
+  try {
+    const plan = createInstallPlan({
+      atomicBombPackage: "/workspace/atomic-bomb",
+      cwd,
+      resourcesPackage: "/workspace/create-atomic-resources",
+    });
+
+    assert.deepEqual(plan.packageSpecs, {
+      atomicBomb: "/workspace/atomic-bomb",
+      resources: "/workspace/create-atomic-resources",
+    });
+    assert.deepEqual(plan.commands, [
+      {
+        command: "npm",
+        args: [
+          "install",
+          "--save-dev",
+          "/workspace/atomic-bomb",
+          "/workspace/create-atomic-resources",
+        ],
+      },
+      {
+        command: process.platform === "win32" ? "npx.cmd" : "npx",
+        args: ["--yes", "/workspace/create-atomic-resources", "./src"],
+      },
+      {
+        command: process.platform === "win32" ? "npx.cmd" : "npx",
+        args: [
+          "--yes",
+          "/workspace/atomic-bomb",
+          "--platform",
+          "react-ts-vite",
+        ],
+        input: "N\n",
+      },
+    ]);
+  } finally {
+    fs.rmSync(cwd, { force: true, recursive: true });
+  }
+});
+
+test("package specs can be read from environment variables", () => {
+  const originalAtomicBombPackage = process.env.ATOMIC_BOMB_PACKAGE;
+  const originalResourcesPackage = process.env.CREATE_ATOMIC_RESOURCES_PACKAGE;
+
+  try {
+    process.env.ATOMIC_BOMB_PACKAGE = "file:../atomic-bomb";
+    process.env.CREATE_ATOMIC_RESOURCES_PACKAGE =
+      "file:../create-atomic-resources";
+
+    assert.deepEqual(resolvePackageSpecs(), {
+      atomicBomb: "file:../atomic-bomb",
+      resources: "file:../create-atomic-resources",
+    });
+  } finally {
+    if (originalAtomicBombPackage === undefined) {
+      delete process.env.ATOMIC_BOMB_PACKAGE;
+    } else {
+      process.env.ATOMIC_BOMB_PACKAGE = originalAtomicBombPackage;
+    }
+
+    if (originalResourcesPackage === undefined) {
+      delete process.env.CREATE_ATOMIC_RESOURCES_PACKAGE;
+    } else {
+      process.env.CREATE_ATOMIC_RESOURCES_PACKAGE = originalResourcesPackage;
+    }
+  }
+});
+
 test("executes the plan sequentially in the project root", async () => {
   const cwd = createProject();
   const calls = [];
@@ -124,6 +193,7 @@ test("executes the plan sequentially in the project root", async () => {
     await installAtomicTooling({
       cwd,
       destination: "./src",
+      logPlan: () => {},
       postInstall: () => {},
       execute: async (command, args, options) => {
         calls.push({ command, args, options });
@@ -181,11 +251,7 @@ test("asks whether Storybook should be installed", async () => {
     }),
     false,
   );
-  assert.equal(
-    await shouldInstallStorybook({
-    }),
-    false,
-  );
+  assert.equal(await shouldInstallStorybook({}), false);
   assert.equal(
     await shouldInstallStorybook({
       skipStorybook: true,
@@ -229,6 +295,7 @@ test("post-install updates use the custom resource destination", () => {
     assert.deepEqual(applyPostInstallUpdates({ cwd, destination }), {
       atomicBombDestinationUpdated: true,
       atomicImportsEnabled: true,
+      fontHookAdded: false,
       resourceScriptsUpdated: true,
       storybookImportAdded: true,
     });
@@ -304,6 +371,76 @@ test("post-install updates Storybook JavaScript preview files", () => {
       "import { fn } from 'storybook/test'",
       "import '../src/resources/styles/main.css'",
     ]);
+  } finally {
+    fs.rmSync(cwd, { force: true, recursive: true });
+  }
+});
+
+test("post-install updates native token script and App font hook", () => {
+  const cwd = createProject();
+  const destination = "./src";
+  fs.writeFileSync(
+    path.join(cwd, "package.json"),
+    `${JSON.stringify(
+      {
+        dependencies: {
+          expo: "^53.0.0",
+          react: "^19.0.0",
+        },
+        devDependencies: {
+          typescript: "^5.0.0",
+        },
+        scripts: {
+          scss: "sass old.scss old.css",
+          token: "json-to-scss old.json old.scss",
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  fs.writeFileSync(path.join(cwd, "tsconfig.json"), "{}\n");
+  fs.writeFileSync(
+    path.join(cwd, "App.tsx"),
+    [
+      "import { View } from 'react-native'",
+      "",
+      "const App = () => {",
+      "  return <View />",
+      "}",
+      "",
+      "export default App",
+      "",
+    ].join("\n"),
+  );
+  fs.mkdirSync(path.join(cwd, "src", "hooks"), { recursive: true });
+  fs.writeFileSync(path.join(cwd, "src", "hooks", "index.ts"), "");
+
+  try {
+    assert.equal(isNativeProject(cwd), true);
+    assert.equal(updateResourceScripts({ cwd, destination }), true);
+    assert.equal(addUseFontHookToApp({ cwd, destination }), true);
+
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(cwd, "package.json"), "utf8"),
+    );
+    assert.equal(packageJson.scripts.token, undefined);
+    assert.equal(packageJson.scripts.scss, undefined);
+    assert.equal(
+      packageJson.scripts["token:native"],
+      "node ./src/resources/scripts/tokens-to-native.mjs",
+    );
+    assert.equal(
+      packageJson.scripts["token-to-native"],
+      "node ./src/resources/scripts/tokens-to-native.mjs",
+    );
+    assert.equal(enableAtomicImports({ cwd, destination }), false);
+    assert.equal(addStorybookStylesImport({ cwd, destination }), false);
+
+    const app = fs.readFileSync(path.join(cwd, "App.tsx"), "utf8");
+    assert.match(app, /import \{ useFont \} from '\.\/src\/hooks'/u);
+    assert.match(app, /const App = \(\) => \{\n  useFont\(\)/u);
+    assert.equal(addUseFontHookToApp({ cwd, destination }), false);
   } finally {
     fs.rmSync(cwd, { force: true, recursive: true });
   }
