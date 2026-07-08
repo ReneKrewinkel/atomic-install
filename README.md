@@ -58,17 +58,28 @@ npx create-atomic-install@latest
    Storybook uses its defaults and exits after initialization without starting
    the development server.
 
-7. Updates `.storybook/preview.ts`, `.storybook/preview.js`,
+7. For web projects, updates `.storybook/preview.ts`, `.storybook/preview.js`,
    `storybook/preview.ts`, or `storybook/preview.js`, when present, to import
    the generated `resources/styles/main.css` from the configured resource
    destination.
-8. Enables the Atomic Bomb component Sass imports in
+8. For web projects, enables the Atomic Bomb component Sass imports in
    `<destination>/resources/styles/main.scss`.
-9. Rewrites the generated resource scripts and `.atomic-bomb` component
-   destination to use the destination passed to this installer.
+9. For Expo or React Native projects, keeps the native token script and wires
+   the generated `useFont` hook into `App.tsx` when possible.
+10. Rewrites the generated resource scripts and `.atomic-bomb` component
+    destination to use the destination passed to this installer.
 
 The explicit `create-atomic-resources@latest` package specifier is intentional.
 It avoids stale `npx` resolution and is used on every resource installation.
+
+For local end-to-end testing, override the package specifiers with environment
+variables:
+
+```shell
+ATOMIC_BOMB_PACKAGE=/Users/rene/Development/krewinkel/atomic/atomic-bomb \
+CREATE_ATOMIC_RESOURCES_PACKAGE=/Users/rene/Development/krewinkel/atomic/create-atomic-resources \
+npx create-atomic-install ./src
+```
 
 ## Options
 

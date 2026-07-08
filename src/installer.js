@@ -12,6 +12,14 @@ const latestPackages = {
   resources: "create-atomic-resources@latest",
 };
 
+export const resolvePackageSpecs = ({
+  atomicBombPackage = process.env.ATOMIC_BOMB_PACKAGE,
+  resourcesPackage = process.env.CREATE_ATOMIC_RESOURCES_PACKAGE,
+} = {}) => ({
+  atomicBomb: atomicBombPackage || latestPackages.atomicBomb,
+  resources: resourcesPackage || latestPackages.resources,
+});
+
 const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
 
 export const createInstallPlan = ({
@@ -23,12 +31,14 @@ export const createInstallPlan = ({
   skipDependencies = false,
   skipResources = false,
   skipUpdate = false,
+  ...packageOptions
 } = {}) => {
   const configured = fs.existsSync(path.join(cwd, ".atomic-bomb"));
+  const packageSpecs = resolvePackageSpecs(packageOptions);
   const commands = [];
   const packages = [
-    ...(!skipAtomicBomb ? [latestPackages.atomicBomb] : []),
-    ...(!skipResources ? [latestPackages.resources] : []),
+    ...(!skipAtomicBomb ? [packageSpecs.atomicBomb] : []),
+    ...(!skipResources ? [packageSpecs.resources] : []),
   ];
 
   if (!skipDependencies && packages.length > 0) {
@@ -43,7 +53,7 @@ export const createInstallPlan = ({
   if (!skipResources) {
     commands.push({
       command: npxCommand,
-      args: ["--yes", latestPackages.resources, destination],
+      args: ["--yes", packageSpecs.resources, destination],
     });
   }
 
@@ -51,13 +61,13 @@ export const createInstallPlan = ({
     if (!configured) {
       commands.push({
         command: npxCommand,
-        args: ["--yes", latestPackages.atomicBomb, "--platform", platform],
+        args: ["--yes", packageSpecs.atomicBomb, "--platform", platform],
         input: "N\n",
       });
     } else if (!skipUpdate) {
       commands.push({
         command: npxCommand,
-        args: ["--yes", latestPackages.atomicBomb, "--update"],
+        args: ["--yes", packageSpecs.atomicBomb, "--update"],
       });
     }
   }
@@ -72,16 +82,29 @@ export const createInstallPlan = ({
   return {
     commands,
     configured,
+    packageSpecs,
   };
+};
+
+export const logInstallPlan = ({ commands, packageSpecs }) => {
+  console.log("\nAtomic tooling install plan:");
+  console.log(`- atomic-bomb: ${packageSpecs.atomicBomb}`);
+  console.log(`- create-atomic-resources: ${packageSpecs.resources}`);
+
+  commands.forEach((item, index) => {
+    console.log(`${index + 1}. ${item.command} ${item.args.join(" ")}`);
+  });
 };
 
 export const installAtomicTooling = async ({
   cwd = process.cwd(),
   execute = runCommand,
+  logPlan = logInstallPlan,
   postInstall = applyPostInstallUpdates,
   ...options
 } = {}) => {
   const plan = createInstallPlan({ cwd, ...options });
+  logPlan(plan);
 
   for (const item of plan.commands) {
     await execute(item.command, item.args, {
